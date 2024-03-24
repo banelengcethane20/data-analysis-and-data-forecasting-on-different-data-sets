@@ -1,0 +1,132 @@
+---
+title: "Data analysis"
+author: "Banele Ngcethane"
+date: "2023-10-04"
+output: html_document
+---
+
+
+## shareprice  
+
+```{r}
+library(readxl)
+library(forecast)
+library(zoo)
+
+View(sharepricedata_2023_)
+
+time_series_data=sharepricedata_2023_
+time_series_graph=ts(time_series_data$Value,
+                     frequency = 12, start = c(1960,1),end=c(2022,12))
+
+```
+
+## Including Plots
+
+
+```{r pressure, echo=FALSE}
+plot(decompose(time_series_graph))
+ggtsdisplay(time_series_graph)
+acf(time_series_graph)
+pacf(time_series_graph)
+```
+TEST FOR STATIONARITY  
+H0: data has a unit root and is not stationary  
+H1: data has no unit root and is stationary  
+at 5%, if the p-value > 0.05 the data is not stationary
+```{R}
+library(aTSA)
+library(tseries)
+adf.test(time_series_graph)
+
+```
+  
+## differenced data  
+
+```{r}
+first_differenced_data=diff(time_series_graph)
+plot(first_differenced_data,main="first differenced data", 
+     xlab="Year",Ylab="Differenced Values",col="black")
+acf(first_differenced_data,lag.max = 100)
+pacf(first_differenced_data)
+ggtsdisplay(first_differenced_data)
+
+adf.test(first_differenced_data)
+kpss.test(time_series_graph)
+
+ndiffs(time_series_graph)
+
+second_differenced_data = diff(time_series_graph,differences = 1)
+plot(second_differenced_data,main="Second differenced data",
+     xlab="year",ylab="Second differenced values",col="black")
+ggtsdisplay(second_differenced_data)
+acf(second_differenced_data)
+pacf(second_differenced_data)
+adf.test(second_differenced_data)
+```
+
+   
+The ACF and the PACf of the second diferenced data suggest a  
+SARIMA(6,2,1)(0,0,1)
+
+## LOG DATA  
+```{r}
+log_data=sqrt(time_series_graph)
+plot(log_data,main="transformed data (log)",
+     ylab="log data",xlab="year",col="black")
+acf(log_data)
+pacf(log_data)
+ggtsdisplay(log_data)
+adf.test(log_data)
+
+
+#log differenced data
+first_differenced_log_data = diff(log_data)
+plot(first_differenced_log_data,main="first differenced log data",
+     ylab="differenced log values",xlab="year",col="black")
+acf(first_differenced_log_data)
+pacf(first_differenced_log_data)
+ggtsdisplay(first_differenced_log_data)
+adf.test(first_differenced_log_data)
+
+second_differenced_log_data = diff(log_data,differences = 2)
+plot(second_differenced_log_data,main="second differenced log data",
+     xlab="year",ylab="second differenced log values",col="black")
+acf(second_differenced_log_data)
+pacf(second_differenced_log_data)
+ggtsdisplay(second_differenced_log_data)
+adf.test(second_differenced_log_data)
+
+```
+   
+the log data is non stationary since the p-value is not less than 0.05  
+the second differenced data is stationary  
+and suggest a SARIMA(5,2,0)(0,0,1)  
+## models  
+model by non transformed and transformed data  
+
+```{r}
+library(forecast)
+model1=forecast::Arima(time_series_graph,order=c(6,2,1),seasonal = c(0,0,1))
+model2=forecast::Arima(time_series_graph,c(5,2,0),seasonal = c(0,0,1))
+plot(time_series_graph)
+lines(model1$fitted,col="red")
+lines(model2$fitted,col="blue")
+
+
+plot(model1$fitted,col="red")
+plot(model2$fitted,col="blue")
+
+```
+   
+#accuracy of the models
+```{r}
+accuracy(model1)
+accuracy(model2)
+model1$aic
+model1$bic
+model2$aic
+model2$bic
+
+```
+
